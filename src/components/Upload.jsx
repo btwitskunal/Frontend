@@ -1,19 +1,25 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useContext } from 'react';
 import * as XLSX from 'xlsx';
 import shreeLogoShort from '../assets/shree-logo-short.png'
 
+import { Upload, FileSpreadsheet, Download, LogOut, X, Eye, Trash2, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
+import { UserContext } from '../App';
 
-const Upload = () => {
+const UploadPortal = () => {
+  const { user } = useContext(UserContext);
+  if (user?.role !== 'DO') {
+    return <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444', fontWeight: 600 }}>Access denied: Only DO users can upload files.</div>;
+  }
   const [fileName, setFileName] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState('');
   const [message, setMessage] = useState({ text: '', type: '' });
   const [isLoading, setIsLoading] = useState(false);
+  const [reportUrl, setReportUrl] = useState(null);
   const fileInputRef = useRef(null);
 
   const styles = {
-    uploadContainer: {
-      minHeight: '100vh',
+    container: {
       height: '100vh',
       width: '100vw',
       display: 'flex',
@@ -25,7 +31,7 @@ const Upload = () => {
       padding: 0,
       overflow: 'hidden'
     },
-    portalHeader: {
+    header: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -33,19 +39,16 @@ const Upload = () => {
       backgroundColor: '#ffffff',
       borderBottom: '1px solid #e2e8f0',
       boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-      position: 'sticky',
-      top: 0,
-      zIndex: 50,
       width: '100%',
       boxSizing: 'border-box',
       flexShrink: 0
     },
-    portalBrand: {
+    brand: {
       display: 'flex',
       alignItems: 'center',
       gap: '0.75rem'
     },
-    portalLogo: {
+    logo: {
       width: '40px',
       height: '40px',
       // backgroundColor: '#3b82f6',
@@ -53,21 +56,23 @@ const Upload = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      color: 'white',
-      fontSize: '20px',
+      color: 'black',
+      fontSize: '16px',
       fontWeight: 'bold'
     },
-    portalTitle: {
+    title: {
       fontSize: '1.5rem',
       fontWeight: '700',
       color: '#1e293b',
-      margin: 0
+      margin: 0,
+      alignItems: 'center',
+      justifyContent: 'center'
     },
     headerActions: {
       display: 'flex',
       gap: '0.75rem'
     },
-    actionBtn: {
+    headerBtn: {
       display: 'inline-flex',
       alignItems: 'center',
       gap: '0.5rem',
@@ -80,257 +85,198 @@ const Upload = () => {
       cursor: 'pointer',
       border: 'none'
     },
-    actionBtnPrimary: {
+    primaryBtn: {
       backgroundColor: '#3b82f6',
       color: '#ffffff'
     },
-    actionBtnSecondary: {
+    secondaryBtn: {
       backgroundColor: '#f1f5f9',
       color: '#475569',
       border: '1px solid #cbd5e1'
     },
-    mainContainer: {
+    main: {
       flex: 1,
-      padding: '2rem',
+      padding: '1.5rem',
       display: 'flex',
       justifyContent: 'center',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       width: '100%',
-      height: '100%',
       boxSizing: 'border-box',
       overflow: 'auto'
     },
-    uploadCard: {
+    card: {
       backgroundColor: '#ffffff',
-      borderRadius: '20px',
-      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+      borderRadius: '16px',
+      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
       border: '1px solid #e2e8f0',
-      padding: '2.5rem',
+      padding: '2rem',
       width: '100%',
-      maxWidth: '700px',
-      height: 'fit-content',
-      maxHeight: 'calc(100vh - 200px)',
-      overflow: 'auto'
+      boxSizing: 'border-box'
     },
     cardHeader: {
       textAlign: 'center',
-      marginBottom: '2.5rem'
+      marginBottom: '2rem'
     },
     cardTitle: {
-      fontSize: '2.25rem',
+      fontSize: '2rem',
       fontWeight: '700',
       color: '#1e293b',
-      marginBottom: '0.75rem'
+      marginBottom: '0.5rem'
     },
     cardSubtitle: {
-      fontSize: '1.1rem',
+      fontSize: '1rem',
       color: '#64748b',
       margin: 0
     },
     dropZone: {
-      border: '3px dashed #cbd5e1',
-      borderRadius: '16px',
-      padding: '4rem 2rem',
+      border: '2px dashed #cbd5e1',
+      borderRadius: '12px',
+      padding: '3rem 2rem',
       textAlign: 'center',
       cursor: 'pointer',
       transition: 'all 0.3s ease',
       backgroundColor: '#f8fafc',
-      marginBottom: '2rem',
-      position: 'relative'
+      marginBottom: '1.5rem'
     },
-    dropZoneHover: {
+    dropZoneActive: {
       borderColor: '#3b82f6',
-      backgroundColor: '#f0f9ff',
-      transform: 'scale(1.02)'
+      backgroundColor: '#f0f9ff'
     },
     uploadIcon: {
-      fontSize: '4rem',
-      color: '#94a3b8',
-      marginBottom: '1.5rem',
-      display: 'block'
+      display: 'flex',
+      justifyContent: 'center',
+      marginBottom: '1rem',
+      color: '#94a3b8'
     },
     dropZoneTitle: {
-      fontSize: '1.5rem',
+      fontSize: '1.25rem',
       fontWeight: '600',
       color: '#1e293b',
-      marginBottom: '0.75rem'
+      marginBottom: '0.5rem'
     },
     dropZoneText: {
       color: '#64748b',
-      marginBottom: '0.75rem',
-      fontSize: '1.1rem'
+      marginBottom: '1rem'
     },
-    dropZoneInfo: {
-      marginTop: '1rem',
+    supportedFormats: {
       fontSize: '0.875rem',
       color: '#64748b',
-      padding: '1rem',
       backgroundColor: '#f1f5f9',
+      padding: '0.75rem',
       borderRadius: '8px',
       display: 'inline-block'
-    },
-    divider: {
-      display: 'flex',
-      alignItems: 'center',
-      margin: '2rem 0',
-      color: '#64748b',
-      fontSize: '0.875rem'
-    },
-    dividerLine: {
-      flex: 1,
-      height: '1px',
-      backgroundColor: '#e2e8f0'
-    },
-    dividerText: {
-      padding: '0 1.5rem',
-      fontWeight: '500'
-    },
-    sources: {
-      display: 'flex',
-      justifyContent: 'center',
-      marginBottom: '2rem'
-    },
-    source: {
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      gap: '0.75rem',
-      padding: '1.5rem',
-      backgroundColor: '#f8fafc',
-      border: '2px solid #e2e8f0',
-      borderRadius: '12px',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      minWidth: '120px'
-    },
-    sourceIcon: {
-      width: '40px',
-      height: '40px',
-      // backgroundColor: '#3b82f6',
-      borderRadius: '8px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: 'white',
-      fontSize: '20px'
     },
     fileInfo: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '1.25rem',
+      padding: '1rem',
       backgroundColor: '#f0f9ff',
-      border: '2px solid #bae6fd',
-      borderRadius: '12px',
-      marginBottom: '1.5rem'
+      border: '1px solid #bae6fd',
+      borderRadius: '8px',
+      marginBottom: '1rem'
     },
     fileDetails: {
       display: 'flex',
       alignItems: 'center',
-      gap: '1rem'
-    },
-    fileIcon: {
-      color: '#10b981',
-      fontSize: '2rem'
+      gap: '0.75rem'
     },
     fileName: {
       fontWeight: '600',
-      color: '#1e293b',
-      fontSize: '1.1rem'
+      color: '#1e293b'
     },
-    btnIcon: {
+    fileType: {
+      fontSize: '0.875rem',
+      color: '#64748b'
+    },
+    iconButton: {
       background: 'none',
       border: 'none',
       color: '#ef4444',
       cursor: 'pointer',
-      padding: '0.75rem',
-      borderRadius: '8px',
-      transition: 'background-color 0.2s ease',
-      fontSize: '1.25rem'
+      padding: '0.5rem',
+      borderRadius: '6px',
+      transition: 'background-color 0.2s ease'
     },
-    btn: {
+    button: {
       display: 'inline-flex',
       alignItems: 'center',
-      gap: '0.75rem',
-      padding: '1rem 2rem',
-      borderRadius: '12px',
-      fontSize: '1rem',
+      gap: '0.5rem',
+      padding: '0.75rem 1.5rem',
+      borderRadius: '8px',
+      fontSize: '0.875rem',
       fontWeight: '600',
       cursor: 'pointer',
       transition: 'all 0.2s ease',
       border: 'none',
       textDecoration: 'none'
     },
-    btnPrimary: {
+    buttonPrimary: {
       backgroundColor: '#3b82f6',
       color: '#ffffff'
     },
-    btnSecondary: {
+    buttonSecondary: {
       backgroundColor: '#f1f5f9',
       color: '#475569',
-      border: '2px solid #cbd5e1'
+      border: '1px solid #cbd5e1'
     },
-    btnPreview: {
-      backgroundColor: '#f0f9ff',
-      color: '#0369a1',
-      border: '2px solid #bae6fd',
-      width: '100%',
-      justifyContent: 'center',
-      marginBottom: '1.5rem'
+    buttonOutline: {
+      backgroundColor: 'transparent',
+      color: '#3b82f6',
+      border: '1px solid #3b82f6'
     },
     buttonGroup: {
       display: 'flex',
-      gap: '1rem',
+      gap: '0.75rem',
       justifyContent: 'flex-end',
-      marginTop: '2rem'
+      marginTop: '1.5rem'
     },
-    spinner: {
+    loading: {
       display: 'flex',
       alignItems: 'center',
-      gap: '1rem',
-      padding: '1.25rem',
+      gap: '0.75rem',
+      padding: '1rem',
       backgroundColor: '#f0f9ff',
-      border: '2px solid #bae6fd',
-      borderRadius: '12px',
-      marginBottom: '1.5rem',
+      border: '1px solid #bae6fd',
+      borderRadius: '8px',
+      marginBottom: '1rem',
       color: '#0369a1'
     },
-    spinnerIcon: {
-      width: '24px',
-      height: '24px',
-      border: '3px solid #bae6fd',
+    spinner: {
+      width: '20px',
+      height: '20px',
+      border: '2px solid #bae6fd',
       borderTopColor: '#0369a1',
       borderRadius: '50%',
       animation: 'spin 1s linear infinite'
     },
-    statusMessage: {
+    message: {
       display: 'flex',
       alignItems: 'center',
-      gap: '1rem',
-      padding: '1.25rem',
-      borderRadius: '12px',
-      marginBottom: '1.5rem',
-      fontSize: '1rem'
+      gap: '0.75rem',
+      padding: '1rem',
+      borderRadius: '8px',
+      marginBottom: '1rem'
     },
-    statusSuccess: {
+    messageSuccess: {
       backgroundColor: '#f0fdf4',
       color: '#15803d',
-      border: '2px solid #bbf7d0'
+      border: '1px solid #bbf7d0'
     },
-    statusError: {
+    messageError: {
       backgroundColor: '#fef2f2',
       color: '#dc2626',
-      border: '2px solid #fecaca'
+      border: '1px solid #fecaca'
     },
-    statusWarning: {
+    messageWarning: {
       backgroundColor: '#fffbeb',
       color: '#d97706',
-      border: '2px solid #fed7aa'
+      border: '1px solid #fed7aa'
     },
     modal: {
       position: 'fixed',
       inset: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -339,9 +285,9 @@ const Upload = () => {
     },
     modalContent: {
       backgroundColor: '#ffffff',
-      borderRadius: '20px',
-      maxWidth: '85vw',
-      maxHeight: '85vh',
+      borderRadius: '12px',
+      maxWidth: '90vw',
+      maxHeight: '80vh',
       overflow: 'hidden',
       boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
     },
@@ -349,46 +295,35 @@ const Upload = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '2rem',
+      padding: '1.5rem',
       borderBottom: '1px solid #e2e8f0'
     },
     modalTitle: {
-      fontSize: '1.5rem',
+      fontSize: '1.25rem',
       fontWeight: '600',
       color: '#1e293b',
       display: 'flex',
       alignItems: 'center',
-      gap: '0.75rem'
+      gap: '0.5rem'
     },
-    closeBtn: {
-      background: 'none',
-      border: 'none',
-      fontSize: '1.5rem',
-      color: '#64748b',
-      cursor: 'pointer',
-      padding: '0.75rem',
-      borderRadius: '8px'
-    },
-    previewTable: {
-      padding: '2rem',
-      maxHeight: '65vh',
+    previewContent: {
+      padding: '1.5rem',
+      maxHeight: '60vh',
       overflow: 'auto'
     },
     footer: {
       backgroundColor: '#ffffff',
       borderTop: '1px solid #e2e8f0',
-      padding: '1.5rem 2rem',
+      padding: '0.75rem 2rem',
       textAlign: 'center',
       width: '100%',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      flexShrink: 0
     },
     footerText: {
       margin: 0,
       fontSize: '0.875rem',
       color: '#64748b'
-    },
-    hidden: {
-      display: 'none'
     }
   };
 
@@ -412,6 +347,7 @@ const Upload = () => {
     if (files.length > 0) {
       const file = files[0];
       setFileName(file.name);
+      setMessage({ text: '', type: '' });
     }
   };
 
@@ -458,6 +394,7 @@ const Upload = () => {
       const result = await response.json();
       
       setIsLoading(false);
+      setReportUrl(null); // Reset previous report link
       
       if (response.ok) {
         if (result.errors && result.errors.length > 0) {
@@ -473,43 +410,50 @@ const Upload = () => {
           });
         }
       } else {
-        setMessage({ text: result.error || 'Upload failed', type: 'error' });
+        // Check for error report URL
+        if (result.reportUrl) {
+          setReportUrl('http://localhost:4000' + result.reportUrl);
+          setMessage({ text: result.message || 'File processed with errors. Download the error report below.', type: 'error' });
+        } else {
+          setMessage({ text: result.error || 'Upload failed', type: 'error' });
+        }
       }
     } catch (error) {
       setIsLoading(false);
       setMessage({ text: 'Network error: ' + error.message, type: 'error' });
+      setReportUrl(null);
     }
   };
 
-  const getStatusMessageStyle = () => {
-    const baseStyle = styles.statusMessage;
+  const getMessageStyle = () => {
+    const baseStyle = styles.message;
     switch (message.type) {
       case 'success':
-        return { ...baseStyle, ...styles.statusSuccess };
+        return { ...baseStyle, ...styles.messageSuccess };
       case 'error':
-        return { ...baseStyle, ...styles.statusError };
+        return { ...baseStyle, ...styles.messageError };
       case 'warning':
-        return { ...baseStyle, ...styles.statusWarning };
+        return { ...baseStyle, ...styles.messageWarning };
       default:
         return baseStyle;
     }
   };
 
-  const getStatusIcon = () => {
+  const getMessageIcon = () => {
     switch (message.type) {
       case 'success':
-        return '✅';
+        return <CheckCircle size={20} />;
       case 'error':
-        return '❌';
+        return <AlertCircle size={20} />;
       case 'warning':
-        return '⚠️';
+        return <AlertTriangle size={20} />;
       default:
-        return '';
+        return null;
     }
   };
 
   return (
-    <div style={styles.uploadContainer}>
+    <div style={styles.container}>
       <style>
         {`
           * {
@@ -520,196 +464,222 @@ const Upload = () => {
           html, body {
             width: 100%;
             height: 100%;
-            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
           }
           @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
           }
+          .drop-zone-hover {
+            border-color: #3b82f6 !important;
+            background-color: #f0f9ff !important;
+          }
+          button:hover {
+            transform: translateY(-1px);
+          }
+          .preview-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+          }
+          .preview-table th,
+          .preview-table td {
+            border: 1px solid #e2e8f0;
+            padding: 0.5rem;
+            text-align: left;
+          }
+          .preview-table th {
+            background-color: #f8fafc;
+            font-weight: 600;
+          }
         `}
       </style>
       
-      <header style={styles.portalHeader}>
-        <div style={styles.portalBrand}>
-          <div style={styles.portalLogo}>
-          <img src={shreeLogoShort} alt="Shree Logo short" style={{ height: '20px', width: 'auto' }} />
+      <header style={styles.header}>
+        <div style={styles.brand}>
+                    <div style={styles.logo}>
+            <img src={shreeLogoShort} alt="Shree Logo" style={{ height: '20px', width: 'auto' }} />
           </div>
-          <h1 style={styles.portalTitle}>BTL Marketing Execution Portal</h1>
+          <h1 style={styles.title}>BTL Marketing Execution Portal</h1>
         </div>
         <div style={styles.headerActions}>
           <a 
             href="http://localhost:4000/template/download" 
-            style={{...styles.actionBtn, ...styles.actionBtnPrimary}}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = '#2563eb';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = '#3b82f6';
-            }}
+            style={{...styles.headerBtn, ...styles.primaryBtn}}
           >
-            ⬇ Download Template
+            <Download size={16} />
+            Download Template
           </a>
-          <a 
-            href="http://localhost:3000/auth/signout" 
-            style={{...styles.actionBtn, ...styles.actionBtnSecondary}}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = '#e2e8f0';
+          <button 
+            onClick={async () => {
+              try {
+                const response = await fetch('http://localhost:4000/auth/logout', {
+                  method: 'POST',
+                  credentials: 'include'
+                });
+                if (response.ok) {
+                  window.location.href = '/login';
+                }
+              } catch (err) {
+                console.error('Logout failed:', err);
+                window.location.href = '/login';
+              }
             }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = '#f1f5f9';
-            }}
+            style={{...styles.headerBtn, ...styles.secondaryBtn}}
           >
-            ↗ Sign Out
-          </a>
+            <LogOut size={16} />
+            Sign Out
+          </button>
         </div>
       </header>
 
-      <div style={styles.mainContainer}>
-        <div style={styles.uploadCard}>
+      <main style={styles.main}>
+        <div style={styles.card}>
           <div style={styles.cardHeader}>
             <h2 style={styles.cardTitle}>Upload Excel Files</h2>
             <p style={styles.cardSubtitle}>Upload your marketing execution data files for processing</p>
           </div>
 
-          <div id="uploadForm">
-            <div 
-              id="drop-area" 
-              style={styles.dropZone}
-              onDragEnter={preventDefaults}
-              onDragOver={preventDefaults}
-              onDragLeave={preventDefaults}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current.click()}
-              onMouseEnter={(e) => {
-                Object.assign(e.target.style, styles.dropZoneHover);
-              }}
-              onMouseLeave={(e) => {
-                Object.assign(e.target.style, styles.dropZone);
-              }}
-            >
-              <div style={styles.uploadIcon}>☁️</div>
-              <h3 style={styles.dropZoneTitle}>Drag and drop your files here</h3>
-              <p style={styles.dropZoneText}>or click to browse from your computer</p>
-              <div style={styles.dropZoneInfo}>
-                <strong>Supported formats:</strong> .xlsx, .xls • <strong>Max size:</strong> 25MB
-              </div>
-              <input 
-                type="file" 
-                id="fileElem" 
-                ref={fileInputRef}
-                name="file" 
-                accept=".xlsx,.xls" 
-                onChange={handleFileInput}
-                style={{ display: 'none' }}
-              />
+          <div 
+            style={styles.dropZone}
+            onDragEnter={preventDefaults}
+            onDragOver={(e) => {
+              preventDefaults(e);
+              e.currentTarget.classList.add('drop-zone-hover');
+            }}
+            onDragLeave={(e) => {
+              preventDefaults(e);
+              e.currentTarget.classList.remove('drop-zone-hover');
+            }}
+            onDrop={(e) => {
+              handleDrop(e);
+              e.currentTarget.classList.remove('drop-zone-hover');
+            }}
+            onClick={() => fileInputRef.current.click()}
+          >
+            <div style={styles.uploadIcon}>
+              <Upload size={48} />
             </div>
-
-            <div style={styles.divider}>
-              <div style={styles.dividerLine}></div>
-              <span style={styles.dividerText}>or choose from</span>
-              <div style={styles.dividerLine}></div>
+            <h3 style={styles.dropZoneTitle}>Drag and drop your files here</h3>
+            <p style={styles.dropZoneText}>or click to browse from your computer</p>
+            <div style={styles.supportedFormats}>
+              <strong>Supported formats:</strong> .xlsx, .xls • <strong>Max size:</strong> 25MB
             </div>
+            <input 
+              type="file" 
+              ref={fileInputRef}
+              accept=".xlsx,.xls" 
+              onChange={handleFileInput}
+              style={{ display: 'none' }}
+            />
+          </div>
 
-            <div style={styles.sources}>
-              <label style={styles.source} htmlFor="fileElem">
-                <div style={styles.sourceIcon}>💻</div>
-                <span>My Computer</span>
-              </label>
-            </div>
-
-            {fileName && (
-              <div id="file-info" style={styles.fileInfo}>
-                <div style={styles.fileDetails}>
-                  <div style={styles.fileIcon}>📊</div>
-                  <div>
-                    <div style={styles.fileName}>{fileName}</div>
-                    <div style={{ fontSize: '0.875rem', color: '#64748b' }}>Excel file selected</div>
-                  </div>
+          {fileName && (
+            <div style={styles.fileInfo}>
+              <div style={styles.fileDetails}>
+                <FileSpreadsheet size={24} color="#10b981" />
+                <div>
+                  <div style={styles.fileName}>{fileName}</div>
+                  <div style={styles.fileType}>Excel file selected</div>
                 </div>
-                <button type="button" style={styles.btnIcon} onClick={resetFileInput}>
-                  🗑️
-                </button>
               </div>
-            )}
-
-            {fileName && (
               <button 
-                type="button" 
-                id="previewBtn" 
-                style={styles.btnPreview}
-                onClick={previewFile}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#dbeafe';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = '#f0f9ff';
-                }}
-              >
-                👁️ Preview File Content
-              </button>
-            )}
-
-            {isLoading && (
-              <div style={styles.spinner}>
-                <div style={styles.spinnerIcon}></div>
-                Processing your file...
-              </div>
-            )}
-
-            {message.text && (
-              <div style={getStatusMessageStyle()}>
-                <span>{getStatusIcon()}</span>
-                {message.text}
-              </div>
-            )}
-
-            <div style={styles.buttonGroup}>
-              <button 
-                type="button" 
-                style={{...styles.btn, ...styles.btnSecondary}} 
+                style={styles.iconButton} 
                 onClick={resetFileInput}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#e2e8f0';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = '#f1f5f9';
-                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#fee2e2'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
               >
-                ✕ Cancel
-              </button>
-              <button 
-                type="button" 
-                style={{...styles.btn, ...styles.btnPrimary}}
-                onClick={handleSubmit}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#2563eb';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = '#3b82f6';
-                }}
-              >
-                ⬆️ Upload File
+                <Trash2 size={18} />
               </button>
             </div>
+          )}
+
+          {isLoading && (
+            <div style={styles.loading}>
+              <div style={styles.spinner}></div>
+              Processing your file...
+            </div>
+          )}
+
+          {message.text && (
+            <div style={getMessageStyle()}>
+              {getMessageIcon()}
+              {message.text}
+              {reportUrl && (
+                <div style={{ marginTop: '1rem' }}>
+                  <a
+                    href={reportUrl}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      background: '#3b82f6',
+                      color: '#fff',
+                      padding: '0.5rem 1rem',
+                      borderRadius: '4px',
+                      textDecoration: 'none',
+                      fontWeight: 500,
+                      marginTop: '0.5rem',
+                    }}
+                    download
+                  >
+                    <Download size={16} />
+                    Download Error Report
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div style={styles.buttonGroup}>
+            {fileName && (
+              <button 
+                style={{...styles.button, ...styles.buttonOutline}}
+                onClick={previewFile}
+              >
+                <Eye size={16} />
+                Preview
+              </button>
+            )}
+            <button 
+              style={{...styles.button, ...styles.buttonSecondary}} 
+              onClick={resetFileInput}
+            >
+              <X size={16} />
+              Cancel
+            </button>
+            <button 
+              style={{...styles.button, ...styles.buttonPrimary}}
+              onClick={handleSubmit}
+              disabled={!fileName || isLoading}
+            >
+              <Upload size={16} />
+              Upload File
+            </button>
           </div>
         </div>
-      </div>
+      </main>
 
-      {/* Preview Modal */}
       {showPreview && (
-        <div id="previewModal" style={styles.modal}>
+        <div style={styles.modal}>
           <div style={styles.modalContent}>
             <div style={styles.modalHeader}>
               <h3 style={styles.modalTitle}>
-                📊 Excel File Preview
+                <FileSpreadsheet size={20} />
+                Excel File Preview
               </h3>
-              <button style={styles.closeBtn} onClick={() => setShowPreview(false)}>
-                ✕
+              <button 
+                style={styles.iconButton} 
+                onClick={() => setShowPreview(false)}
+              >
+                <X size={20} />
               </button>
             </div>
             <div 
-              id="previewTable" 
-              style={styles.previewTable}
+              style={styles.previewContent}
+              className="preview-table"
               dangerouslySetInnerHTML={{ __html: previewData }}
             />
           </div>
@@ -717,10 +687,11 @@ const Upload = () => {
       )}
 
       <footer style={styles.footer}>
+      <p style={styles.footerText}>&copy; Secure enterprise data management.</p>
         <p style={styles.footerText}>&copy; 2025 Shree Cement Limited. All rights reserved.</p>
       </footer>
     </div>
   );
 };
 
-export default Upload;
+export default UploadPortal;

@@ -6,7 +6,32 @@ import microsoftLogo from '../assets/microsoft-logo.png';
 
 const Login = () => {
   const handleLogin = () => {
-    window.location.href = "http://localhost:3000/auth/signin";
+    // For now, we'll use a simple form-based login since SAML isn't fully configured
+    // You can replace this with your actual SAML authentication flow
+    const username = prompt("Enter username (use 'admin' for ADMIN role, any other for DO role):");
+    const password = prompt("Enter password:");
+    
+    if (username && password) {
+      fetch('http://localhost:4000/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ username, password })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          window.location.reload(); // Reload to trigger user context update
+        } else {
+          alert('Login failed: ' + (data.error || 'Unknown error'));
+        }
+      })
+      .catch(err => {
+        alert('Login failed: ' + err.message);
+      });
+    }
   };
 
   const styles = {
