@@ -1,37 +1,29 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import shreeLogo from '../assets/shree-logo.png'; 
 import shreeLogoShort from '../assets/shree-logo-short.png'
 import microsoftLogo from '../assets/microsoft-logo.png'; 
 
 
 const Login = () => {
-  const handleLogin = () => {
-    // For now, we'll use a simple form-based login since SAML isn't fully configured
-    // You can replace this with your actual SAML authentication flow
-    const username = prompt("Enter username (use 'admin' for ADMIN role, any other for DO role):");
-    const password = prompt("Enter password:");
+  // Check for login/logout status from URL parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const loginStatus = urlParams.get('login');
+    const logoutStatus = urlParams.get('logout');
     
-    if (username && password) {
-      fetch('http://localhost:4000/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ username, password })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          window.location.reload(); // Reload to trigger user context update
-        } else {
-          alert('Login failed: ' + (data.error || 'Unknown error'));
-        }
-      })
-      .catch(err => {
-        alert('Login failed: ' + err.message);
-      });
+    if (loginStatus === 'success') {
+      // Clear URL parameters and reload to trigger user context update
+      window.history.replaceState({}, document.title, window.location.pathname);
+      window.location.reload();
+    } else if (logoutStatus === 'success') {
+      // Clear URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
+  }, []);
+
+  const handleSSOLogin = () => {
+    // Redirect to backend SSO endpoint
+    window.location.href = 'http://localhost:4000/auth/sso';
   };
 
   const styles = {
@@ -303,11 +295,11 @@ const Login = () => {
           <section id="login-section" style={styles.loginSection}>
             <div style={styles.loginBox}>
               <h2 style={styles.welcomeTitle}>Welcome back</h2>
-              <p style={styles.subtitle}>Sign in to your account to continue</p>
+              <p style={styles.subtitle}>Sign in with your Microsoft account to continue</p>
               <button 
                 id="login-btn" 
                 style={styles.azureBtn}
-                onClick={handleLogin}
+                onClick={handleSSOLogin}
                 onMouseEnter={(e) => {
                   e.target.style.backgroundColor = '#106ebe';
                   e.target.style.transform = 'translateY(-2px)';

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useCallback, useMemo } from 'react';
 import Select from 'react-select';
-import { Search, Users, MapPin, BarChart3, PieChart, Filter, User, Building2, LogOut, Download } from 'lucide-react';
+import { Search, Users, MapPin, BarChart3, PieChart, Filter, User, Building2, LogOut, Download, Settings } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
 import shreeLogoShort from '../assets/shree-logo-short.png';
 import { UserContext } from '../App';
@@ -575,6 +575,20 @@ const CustomerAnalyticsDashboard = () => {
           <h1 style={styles.portalTitle}>BTL Marketing Execution Portal</h1>
         </div>
         <div style={styles.headerActions}>
+          {user?.role === 'ADMIN' && (
+            <button 
+              onClick={() => window.location.href = '/template-manager'}
+              style={{
+                ...styles.headerBtn,
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: '1px solid #2563eb'
+              }}
+            >
+              <Settings size={16} />
+              Template Manager
+            </button>
+          )}
           <button 
             onClick={async () => {
               try {
