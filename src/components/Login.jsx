@@ -23,7 +23,8 @@ const Login = () => {
 
   const handleSSOLogin = () => {
     // Redirect to backend SSO endpoint
-    window.location.href = 'http://localhost:4000/auth/sso';
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+    window.location.href = `${apiBaseUrl}/auth/sso`;
   };
 
   const styles = {

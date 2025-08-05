@@ -1,9 +1,10 @@
 import React, { useState, useRef, useContext } from 'react';
 import * as XLSX from 'xlsx';
 import shreeLogoShort from '../assets/shree-logo-short.png'
-
 import { Upload, FileSpreadsheet, Download, LogOut, X, Eye, Trash2, CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
 import { UserContext } from '../App';
+import LoadingSpinner from './LoadingSpinner';
+import ProgressBar from './ProgressBar';
 
 const UploadPortal = () => {
   const { user } = useContext(UserContext);
@@ -15,6 +16,7 @@ const UploadPortal = () => {
   const [previewData, setPreviewData] = useState('');
   const [message, setMessage] = useState({ text: '', type: '' });
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [reportUrl, setReportUrl] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -380,16 +382,29 @@ const UploadPortal = () => {
     }
 
     setIsLoading(true);
+    setUploadProgress(0);
     setMessage({ text: '', type: '' });
 
     const formData = new FormData();
     formData.append('file', fileInputRef.current.files[0]);
 
+    // Simulate upload progress
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + Math.random() * 10;
+      });
+    }, 200);
+
     try {
-      const response = await fetch('http://localhost:4000/upload', {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+      const response = await fetch(`${apiBaseUrl}/upload`, {
         method: 'POST',
         body: formData
       });
+      
+      clearInterval(progressInterval);
+      setUploadProgress(100);
       
       const result = await response.json();
       
@@ -399,28 +414,35 @@ const UploadPortal = () => {
       if (response.ok) {
         if (result.errors && result.errors.length > 0) {
           setMessage({ 
-            text: `${result.rowsInserted} rows inserted successfully, but ${result.errors.length} rows had errors`, 
+            text: `${result.rowsInserted} rows inserted successfully, but ${result.errors.length} rows had errors. Please review the error report.`, 
             type: 'warning' 
           });
-          console.error('Errors:', result.errors);
+          console.error('Upload errors:', result.errors);
         } else {
           setMessage({ 
-            text: `File processed successfully! ${result.rowsInserted} rows inserted.`, 
+            text: `File processed successfully! ${result.rowsInserted} rows inserted into the database.`, 
             type: 'success' 
           });
         }
       } else {
         // Check for error report URL
         if (result.reportUrl) {
-          setReportUrl('http://localhost:4000' + result.reportUrl);
-          setMessage({ text: result.message || 'File processed with errors. Download the error report below.', type: 'error' });
+          setReportUrl(`${apiBaseUrl}${result.reportUrl}`);
+          setMessage({ text: result.message || 'File processed with errors. Download the error report below to see details.', type: 'error' });
         } else {
-          setMessage({ text: result.error || 'Upload failed', type: 'error' });
+          setMessage({ text: result.error || 'Upload failed. Please try again with a valid Excel file.', type: 'error' });
         }
       }
     } catch (error) {
+      clearInterval(progressInterval);
       setIsLoading(false);
-      setMessage({ text: 'Network error: ' + error.message, type: 'error' });
+      console.error('Upload error:', error);
+      
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        setMessage({ text: 'Unable to connect to server. Please check your internet connection and try again.', type: 'error' });
+      } else {
+        setMessage({ text: 'Upload failed. Please try again in a few moments.', type: 'error' });
+      }
       setReportUrl(null);
     }
   };
@@ -598,8 +620,14 @@ const UploadPortal = () => {
 
           {isLoading && (
             <div style={styles.loading}>
-              <div style={styles.spinner}></div>
-              Processing your file...
+              <LoadingSpinner size={32} text="Processing your file..." />
+              {uploadProgress > 0 && (
+                <ProgressBar 
+                  progress={uploadProgress} 
+                  text="Upload progress"
+                  showPercentage={true}
+                />
+              )}
             </div>
           )}
 
@@ -651,12 +679,26 @@ const UploadPortal = () => {
               Cancel
             </button>
             <button 
-              style={{...styles.button, ...styles.buttonPrimary}}
+              style={{
+                ...styles.button, 
+                ...styles.buttonPrimary,
+                opacity: isLoading ? 0.6 : 1,
+                cursor: isLoading ? 'not-allowed' : 'pointer'
+              }}
               onClick={handleSubmit}
               disabled={!fileName || isLoading}
             >
-              <Upload size={16} />
-              Upload File
+              {isLoading ? (
+                <>
+                  <LoadingSpinner size={16} text="" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload size={16} />
+                  Upload File
+                </>
+              )}
             </button>
           </div>
         </div>

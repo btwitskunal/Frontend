@@ -9,10 +9,20 @@ const TemplateManager = () => {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    fetch('/api/template')
-      .then(res => res.json())
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+    
+    fetch(`${apiBaseUrl}/api/template`)
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`Server error: ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => setSchema(data.columns || []))
-      .catch(() => setError('Failed to fetch template schema'));
+      .catch((error) => {
+        console.error('Failed to fetch template schema:', error);
+        setError('Unable to load template structure. Please check your connection and try again.');
+      });
   }, []);
 
   const handleFileChange = (e) => {
@@ -33,7 +43,8 @@ const TemplateManager = () => {
     const formData = new FormData();
     formData.append('template', file);
     try {
-      const res = await fetch('/api/template', {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+      const res = await fetch(`${apiBaseUrl}/api/template`, {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -42,14 +53,22 @@ const TemplateManager = () => {
       if (res.ok) {
         setMessage(data.message || 'Template updated successfully');
         // Refresh schema
-        fetch('/api/template')
+        fetch(`${apiBaseUrl}/api/template`)
           .then(res => res.json())
-          .then(data => setSchema(data.columns || []));
+          .then(data => setSchema(data.columns || []))
+          .catch(error => {
+            console.error('Failed to refresh schema:', error);
+          });
       } else {
-        setError(data.error || 'Failed to update template');
+        setError(data.error || 'Failed to update template. Please try again.');
       }
     } catch (err) {
-      setError('Failed to upload template');
+      console.error('Template upload error:', err);
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        setError('Unable to connect to server. Please check your internet connection and try again.');
+      } else {
+        setError('Failed to upload template. Please try again in a few moments.');
+      }
     }
     setUploading(false);
   };
@@ -59,11 +78,12 @@ const TemplateManager = () => {
     setError('');
     setMessage('');
     try {
-      const res = await fetch('/api/template/download', {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+      const res = await fetch(`${apiBaseUrl}/api/template/download`, {
         method: 'GET',
         credentials: 'include',
       });
-      if (!res.ok) throw new Error('Failed to download');
+      if (!res.ok) throw new Error(`Download failed: ${res.status}`);
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -72,9 +92,15 @@ const TemplateManager = () => {
       document.body.appendChild(a);
       a.click();
       a.remove();
-      setMessage('Template downloaded');
+      window.URL.revokeObjectURL(url);
+      setMessage('Template downloaded successfully');
     } catch (err) {
-      setError('Failed to download template');
+      console.error('Template download error:', err);
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        setError('Unable to connect to server. Please check your internet connection and try again.');
+      } else {
+        setError('Failed to download template. Please try again in a few moments.');
+      }
     }
     setDownloading(false);
   };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext, useCallback, useMemo } from 'react';
 import Select from 'react-select';
 import { Search, Users, MapPin, BarChart3, PieChart, Filter, User, Building2, LogOut, Download, Settings } from 'lucide-react';
+import LoadingSpinner from './LoadingSpinner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
 import shreeLogoShort from '../assets/shree-logo-short.png';
 import { UserContext } from '../App';
@@ -313,7 +314,7 @@ const CustomerAnalyticsDashboard = () => {
     );
   }
 
-  const API_BASE_URL = 'http://localhost:4000';
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
 
   // Memoized fetch options to prevent unnecessary re-fetches
   const fetchOptions = useCallback(async () => {
@@ -398,7 +399,8 @@ const CustomerAnalyticsDashboard = () => {
         setVisualizationData(null);
       }
     } catch (error) {
-      setError('Failed to fetch customer BTL activities');
+      console.error('Failed to fetch customer BTL activities:', error);
+      setError('Unable to load customer activities. Please check your connection and try again.');
       setVisualizationData(null);
     } finally {
       setLoading(false);
@@ -444,7 +446,12 @@ const CustomerAnalyticsDashboard = () => {
         setCustomerData(null);
       }
     } catch (err) {
-      setError('Failed to fetch customer data. Please check if the server is running.');
+      console.error('Failed to fetch customer data:', err);
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        setError('Unable to connect to server. Please check your internet connection and try again.');
+      } else {
+        setError('Failed to fetch customer data. Please try again in a few moments.');
+      }
       setCustomerData(null);
     } finally {
       setLoading(false);
@@ -477,7 +484,12 @@ const CustomerAnalyticsDashboard = () => {
         setError(data.error || 'No customers found');
       }
     } catch (err) {
-      setError('Failed to search customers. Please check if the server is running.');
+      console.error('Failed to search customers:', err);
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        setError('Unable to connect to server. Please check your internet connection and try again.');
+      } else {
+        setError('Failed to search customers. Please try again in a few moments.');
+      }
     } finally {
       setLoading(false);
     }
@@ -592,15 +604,18 @@ const CustomerAnalyticsDashboard = () => {
           <button 
             onClick={async () => {
               try {
-                const response = await fetch('http://localhost:4000/auth/logout', {
+                const response = await fetch(`${API_BASE_URL}/auth/logout`, {
                   method: 'POST',
                   credentials: 'include'
                 });
                 if (response.ok) {
                   window.location.href = '/login';
+                } else {
+                  throw new Error(`Logout failed: ${response.status}`);
                 }
               } catch (err) {
                 console.error('Logout failed:', err);
+                // Still redirect to login even if logout fails
                 window.location.href = '/login';
               }
             }}
