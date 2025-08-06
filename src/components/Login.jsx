@@ -1,15 +1,17 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import shreeLogo from '../assets/shree-logo.png'; 
 import shreeLogoShort from '../assets/shree-logo-short.png'
 import microsoftLogo from '../assets/microsoft-logo.png'; 
 
 
 const Login = () => {
+  const [error, setError] = useState(null);
   // Check for login/logout status from URL parameters
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const loginStatus = urlParams.get('login');
     const logoutStatus = urlParams.get('logout');
+    const errorParam = urlParams.get('error');
     
     if (loginStatus === 'success') {
       // Clear URL parameters and reload to trigger user context update
@@ -17,6 +19,9 @@ const Login = () => {
       window.location.reload();
     } else if (logoutStatus === 'success') {
       // Clear URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (errorParam) {
+      setError('Authentication failed. Please try again or contact support.');
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
@@ -325,6 +330,8 @@ const Login = () => {
         <p style={styles.footerText}>Secure enterprise data management</p>
         <p style={styles.footerText}>© 2025 Shree Cement Data Portal. All rights reserved.</p>
       </footer>
+      {/* Error message for SSO failures */}
+      {error && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
     </div>
   );
 };
