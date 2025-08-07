@@ -20,6 +20,9 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Set default title
+    document.title = "Shree Portal";
+    
     // Fetch user profile on mount
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
     
@@ -62,22 +65,16 @@ function App() {
       backgroundColor: '#f8fafc'
     }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{
-          width: '40px',
-          height: '40px',
-          border: '4px solid #f3f3f3',
-          borderTop: '4px solid #3b82f6',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite',
-          margin: '0 auto 16px'
-        }}></div>
-        <p style={{ color: '#6b7280', margin: 0 }}>Loading your portal...</p>
-        <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
+        <img 
+          src="/src/assets/shree-logo.png" 
+          alt="Shree Logo" 
+          style={{ 
+            width: '120px', 
+            height: 'auto', 
+            marginBottom: '16px' 
+          }} 
+        />
+        <p style={{ color: '#6b7280', margin: 0 }}>Loading Shree Portal...</p>
       </div>
     </div>
   );

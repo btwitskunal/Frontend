@@ -8,6 +8,12 @@ import ProgressBar from './ProgressBar';
 
 const UploadPortal = () => {
   const { user } = useContext(UserContext);
+  
+  // Set page title
+  React.useEffect(() => {
+    document.title = "Upload Data - Shree Portal";
+  }, []);
+  
   if (user?.role !== 'DO') {
     return <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444', fontWeight: 600 }}>Access denied: Only DO users can upload files.</div>;
   }

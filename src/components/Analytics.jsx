@@ -258,6 +258,11 @@ const searchFields = [
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF7C7C'];
 
 const CustomerAnalyticsDashboard = () => {
+  // Set page title
+  useEffect(() => {
+    document.title = "Analytics Dashboard - Shree Portal";
+  }, []);
+  
   // Add error boundary state
   const [hasError, setHasError] = useState(false);
   

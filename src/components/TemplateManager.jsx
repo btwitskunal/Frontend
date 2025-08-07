@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 
 const TemplateManager = () => {
+  // Set page title
+  useEffect(() => {
+    document.title = "Template Manager - Shree Portal";
+  }, []);
+  
   const [schema, setSchema] = useState([]);
   const [file, setFile] = useState(null);
   const [message, setMessage] = useState('');

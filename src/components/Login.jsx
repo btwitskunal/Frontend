@@ -6,6 +6,12 @@ import microsoftLogo from '../assets/microsoft-logo.png';
 
 const Login = () => {
   const [error, setError] = useState(null);
+  
+  // Set page title
+  useEffect(() => {
+    document.title = "Login - Shree Portal";
+  }, []);
+  
   // Check for login/logout status from URL parameters
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
